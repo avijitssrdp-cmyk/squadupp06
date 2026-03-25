@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SquadUp | Kolkata Elite Network</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --volt: #ccff00; --carbon: #0a0a0a; --glass: rgba(15, 15, 15, 0.9); }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--carbon); color: white; overflow-x: hidden; }
+        .glass { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .btn-volt { background: var(--volt); color: black; font-weight: 900; text-transform: uppercase; border-radius: 0.75rem; transition: 0.3s; cursor: pointer; }
+        .input-dark { background: #141414; border: 1px solid #333; color: white; border-radius: 0.75rem; padding: 1rem; width: 100%; outline: none; }
+        
+        .bg-container { position: absolute; inset: 0; z-index: 0; overflow: hidden; border-radius: 2.5rem; }
+        .bg-layer { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease-in-out; }
+        .bg-active { opacity: 0.5; }
+        .bg-layer::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, #0a0a0a 25%, transparent 75%); }
+
+        .sidebar-hidden { transform: translateX(-105%); }
+        .sidebar-visible { transform: translateX(0); }
+        
+        /* Fixed Calendar Icon */
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        @keyframes glow { 0% { text-shadow: 0 0 5px rgba(204,255,0,0.1); } 100% { text-shadow: 0 0 15px rgba(204,255,0,0.4); } }
+        .squadup-anim { animation: glow 2s infinite alternate; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="hover-zone" class="fixed inset-y-0 left-0 w-4 z-[60]" onmouseenter="toggleSidebar(true)"></div>
+
+    <div id="auth-overlay" class="fixed inset-0 bg-[#0a0a0a] z-[100] flex flex-col items-center justify-center p-6 overflow-y-auto">
+        <h1 class="text-6xl font-black italic squadup-anim mb-10">SQUAD<span class="text-[#ccff00]">UP</span></h1>
+        
+        <div id="login-box" class="w-full max-w-sm space-y-4">
+            <input type="text" id="login-id" placeholder="Phone or Email" class="input-dark">
+            <input type="password" id="login-pass" placeholder="Password" class="input-dark">
+            <p onclick="showForgot(true)" class="text-[10px] text-gray-500 font-bold uppercase cursor-pointer hover:text-white text-right px-1">Forgot Password?</p>
+            <button onclick="handleLogin()" class="w-full py-4 btn-volt text-lg">Initialize Session</button>
+            <p class="text-center text-sm text-gray-500 uppercase font-bold">New Athlete? <span onclick="toggleAuth('register')" class="text-[#ccff00] cursor-pointer">Request Access</span></p>
+        </div>
+
+        <div id="forgot-box" class="hidden w-full max-w-sm space-y-4">
+            <input type="email" id="forgot-email" placeholder="Registered Email" class="input-dark">
+            <input type="password" id="forgot-new-pass" placeholder="New Password" class="input-dark">
+            <button onclick="handleForgot()" class="w-full py-4 btn-volt">Reset Password</button>
+            <p onclick="showForgot(false)" class="text-center text-xs text-gray-500 cursor-pointer uppercase font-bold">Back to Login</p>
+        </div>
+
+        <div id="register-box" class="hidden w-full max-w-sm space-y-3">
+            <input type="text" id="reg-name" placeholder="Full Name*" class="input-dark py-3">
+            <div class="grid grid-cols-2 gap-2"><input type="tel" id="reg-phone" placeholder="Phone*" class="input-dark py-3"><input type="email" id="reg-email" placeholder="Email*" class="input-dark py-3"></div>
+            <input type="password" id="reg-pass" placeholder="Password*" class="input-dark py-3">
+            <div class="grid grid-cols-2 gap-2">
+                <select id="reg-sport" class="input-dark py-3"><option value="Football">Football</option><option value="Cricket">Cricket</option><option value="Basketball">Basketball</option><option value="Tennis">Tennis</option></select>
+                <select id="reg-skill" class="input-dark py-3"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Pro">Pro</option></select>
+            </div>
+            <button onclick="handleRegister()" class="w-full py-4 btn-volt">Create Profile</button>
+            <p onclick="toggleAuth('login')" class="text-center text-xs text-gray-500 cursor-pointer uppercase font-bold">Back to Login</p>
+        </div>
+    </div>
+
+    <nav id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-[#0f0f0f] border-r border-[#222] z-[70] sidebar-hidden transition-transform duration-300 shadow-2xl flex flex-col" onmouseleave="toggleSidebar(false)">
+        <div class="p-8 border-b border-[#222]"><h2 class="text-2xl font-black text-white italic">SQUAD<span class="text-[#ccff00]">NAV</span></h2></div>
+        <div class="flex-grow p-4 space-y-2">
+            <button onclick="switchView('home')" class="w-full text-left p-4 rounded-xl hover:bg-[#1a1a1a] transition font-bold">🏠 Dugout</button>
+            <button onclick="switchView('outdoor')" class="w-full text-left p-4 rounded-xl hover:bg-[#1a1a1a] transition font-bold">🌳 Outdoor Turfs</button>
+            <button onclick="switchView('indoor')" class="w-full text-left p-4 rounded-xl hover:bg-[#1a1a1a] transition font-bold">🏟️ Indoor Arenas</button>
+            <button onclick="switchView('rank')" class="w-full text-left p-4 rounded-xl hover:bg-[#1a1a1a] transition font-bold">🏅 Rankings</button>
+            <button onclick="document.getElementById('about-modal').classList.remove('hidden')" class="w-full text-left p-4 rounded-xl hover:bg-[#1a1a1a] transition font-bold">ℹ️ About Us</button>
+        </div>
+        <div class="p-6 border-t border-[#222]"><button onclick="logout()" class="w-full py-3 border border-red-500/50 text-red-500 rounded-xl text-xs font-black uppercase">Terminate Session</button></div>
+    </nav>
+
+    <div id="main-content" class="hidden flex flex-col min-h-screen">
+        <header class="p-5 flex justify-between items-center border-b border-[#222] glass sticky top-0 z-50">
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleSidebar(true)" class="text-white hover:text-volt"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+                <h1 class="text-2xl font-black italic tracking-tighter">SQUAD<span class="text-[#ccff00]">UP</span></h1>
+            </div>
+            <div onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="w-10 h-10 bg-[#141414] border border-[#333] rounded-full flex items-center justify-center text-[#ccff00] font-black cursor-pointer" id="avatar">P</div>
+            <div id="profile-dropdown" class="hidden absolute right-5 top-16 w-48 glass rounded-xl py-2 z-50 shadow-2xl">
+                <button onclick="switchView('rank')" class="w-full text-left px-4 py-2 text-sm hover:bg-white/5">My Profile</button>
+                <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-500/5">Logout</button>
+            </div>
+        </header>
+
+        <main class="flex-grow p-6 flex flex-col items-center">
+            
+            <div id="view-home" class="view-section w-full max-w-5xl min-h-[75vh] rounded-[2.5rem] overflow-hidden relative flex flex-col justify-end p-8 md:p-12 border border-[#333]">
+                <div class="bg-container" id="bg-engine"></div>
+                <div class="relative z-20 space-y-6">
+                    <p class="text-[#ccff00] font-black text-xs uppercase tracking-widest">Dugout Control: <span id="user-name" class="text-white">Player</span></p>
+                    <h2 id="quote" class="text-4xl md:text-6xl font-black italic leading-tight text-white drop-shadow-2xl">"Hard work beats talent."</h2>
+                    <p id="author" class="text-sm text-gray-400 font-bold uppercase tracking-widest">— Lionel Messi</p>
+                    <div class="flex space-x-4 mt-8">
+                        <button onclick="switchView('outdoor')" class="px-8 py-4 btn-volt text-xs">Outdoor Turfs</button>
+                        <button onclick="switchView('indoor')" class="px-8 py-4 border border-white/20 rounded-xl text-xs font-black uppercase">Indoor Arenas</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-outdoor" class="view-section hidden w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 py-10"></div>
+            <div id="view-indoor" class="view-section hidden w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 py-10"></div>
+            
+            <div id="view-rank" class="view-section hidden w-full max-w-3xl py-10">
+                <h2 class="text-3xl font-black italic text-center mb-10">GLOBAL <span class="text-[#ccff00]">REPUTATION</span></h2>
+                <div id="rank-list" class="space-y-4"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="disc-modal" class="hidden fixed inset-0 bg-black/98 z-[200] flex items-center justify-center p-6 backdrop-blur-xl">
+        <div class="glass p-10 rounded-[2.5rem] max-w-lg w-full text-center border-red-500/20 shadow-2xl">
+            <h2 class="text-4xl font-black mb-6 text-red-500 uppercase italic">Legal Protocol</h2>
+            <div class="text-gray-400 text-sm mb-10 text-left space-y-4">
+                <p>1. <b>Physical Safety:</b> Athletic activities carry inherent physical risks. You assume full responsibility for your safety.</p>
+                <p>2. <b>Fair Play:</b> Behavior and Skill ratings are mandatory and will affect your global reputation.</p>
+            </div>
+            <button onclick="closeDisc()" class="w-full py-5 btn-volt text-xl shadow-lg">I Acknowledge</button>
+        </div>
+    </div>
+
+    <div id="booking-modal" class="hidden fixed inset-0 bg-black/90 z-[150] flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="glass p-8 rounded-[2.5rem] max-w-sm w-full">
+            <h2 class="text-2xl font-black mb-2 uppercase italic text-[#ccff00]">Book Deployment</h2>
+            <div class="space-y-4">
+                <div class="bg-black/40 p-4 rounded-xl">
+                    <label class="text-[10px] font-bold text-volt uppercase mb-2 block">Athletes Count (Max 10)</label>
+                    <input type="number" id="book-count" min="1" max="10" value="1" class="input-dark py-2 text-center text-xl font-black" onchange="updatePrice()">
+                    <p class="text-right text-xs mt-1">Total Due: <span id="total-price" class="text-volt font-black">₹0</span></p>
+                </div>
+                <input type="date" id="book-date" class="input-dark text-sm">
+                <select id="book-time" class="input-dark text-sm">
+                    <option value="Morning">🌅 Morning (06:00-08:00)</option>
+                    <option value="Evening">🌆 Evening (16:00-18:00)</option>
+                    <option value="Prime">🌃 Prime (18:00-20:00)</option>
+                    <option value="Late">⚽ Late Night (20:00-22:00)</option>
+                </select>
+                <select id="book-pay" class="input-dark text-sm"><option value="Cash">Cash at Venue</option><option value="UPI">Digital UPI</option></select>
+                <button onclick="processBooking()" class="w-full py-4 btn-volt shadow-lg">Initialize Run</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="upi-modal" class="hidden fixed inset-0 bg-black/98 z-[250] flex items-center justify-center p-6">
+        <div class="glass p-10 rounded-[2.5rem] max-w-sm w-full text-center">
+            <h2 class="text-2xl font-black mb-6 uppercase italic text-[#ccff00]">Secure UPI</h2>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=SquadUpSecure" class="mx-auto mb-10 rounded-3xl border-4 border-white">
+            <button onclick="confirmUPI()" id="upi-btn" class="w-full py-5 btn-volt text-lg shadow-lg">I Have Paid</button>
+        </div>
+    </div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyVgEQa_GNKBhGmaut3m6zXuSnQD1u_wD153hip39t-bfZvUle6VO-RAV-lL3_06nXP/exec';
+        let currentUser = null; let activeBgIdx = 0; let activeVenue = null;
+
+        // 🚀 THE 7 SPORTS LEGENDS
+        const sports = [
+            { img: 'https://images.unsplash.com/photo-1508344928928-7165b67de128', q: "Success is no accident.", a: "Lionel Messi" },
+            { img: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e', q: "Focus on the pitch, not the crowd.", a: "Cricket Pro" },
+            { img: 'https://images.unsplash.com/photo-1544919982-b61976f0ba43', q: "Failure is the root of success.", a: "Michael Jordan" },
+            { img: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b', q: "Think five moves ahead.", a: "Magnus Carlsen" },
+            { img: 'https://images.unsplash.com/photo-1611091807601-38378393527b', q: "Precision is everything.", a: "Carrom Legend" },
+            { img: 'https://images.unsplash.com/photo-1577054941913-0599507f3118', q: "The speed of light.", a: "TT Master" },
+            { img: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0', q: "Keep moving forward.", a: "Tennis Star" }
+        ];
+
+        const venues = [
+            { name: "Football 5v5 Elite", loc: "Behala", price: 200, type: "outdoor", cap: 10, img: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800" },
+            { name: "Cricket Box Pro", loc: "Salt Lake", price: 150, type: "outdoor", cap: 16, img: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800" },
+            { name: "Pro Chess Arena", loc: "Gorky Sadan", price: 100, type: "indoor", cap: 2, img: "♟️" },
+            { name: "TT Smash Club", loc: "Parnasree", price: 100, type: "indoor", cap: 4, img: "🏓" }
+        ];
+
+        function initBackgrounds() {
+            const engine = document.getElementById('bg-engine');
+            sports.forEach((s, i) => {
+                const layer = document.createElement('div');
+                layer.id = `bg-layer-${i}`; layer.className = `bg-layer ${i === 0 ? 'bg-active' : ''}`;
+                layer.style.backgroundImage = `url('${s.img}?q=80&w=1600')`; engine.appendChild(layer);
+            });
+            setInterval(() => {
+                document.getElementById(`bg-layer-${activeBgIdx}`).classList.remove('bg-active');
+                activeBgIdx = (activeBgIdx + 1) % sports.length;
+                document.getElementById(`bg-layer-${activeBgIdx}`).classList.add('bg-active');
+                document.getElementById('quote').innerText = `"${sports[activeBgIdx].q}"`;
+                document.getElementById('author').innerText = `— ${sports[activeBgIdx].a}`;
+            }, 7000);
+        }
+
+        function toggleSidebar(show) { document.getElementById('sidebar').classList.toggle('sidebar-hidden', !show); document.getElementById('sidebar').classList.toggle('sidebar-visible', show); }
+        function switchView(v) { 
+            document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden')); 
+            document.getElementById('view-'+v).classList.remove('hidden'); 
+            if(v==='outdoor'||v==='indoor') renderContent(v);
+            if(v==='rank') renderRankings();
+            toggleSidebar(false); 
+        }
+
+        function renderContent(type) {
+            const cont = document.getElementById('view-' + type); cont.innerHTML = '';
+            venues.filter(v => v.type === type).forEach(v => {
+                const visual = v.type === 'outdoor' ? `<img src="${v.img}" class="w-full h-48 object-cover rounded-2xl mb-6">` : `<div class="text-7xl text-center py-10 bg-[#1a1a1a] rounded-2xl mb-6">${v.img}</div>`;
+                cont.innerHTML += `<div class="glass p-8 rounded-[2rem] border border-white/5 hover:border-[#ccff00]/40 transition-all">
+                    ${visual}<h3 class="text-2xl font-black italic uppercase">${v.name}</h3><p class="text-xs text-gray-500 font-bold tracking-widest mt-2">${v.loc}</p>
+                    <div class="flex items-center justify-between mt-8 border-t border-[#222] pt-6">
+                        <p class="text-2xl font-black text-[#ccff00]">₹${v.price}</p>
+                        <button onclick="openBooking('${v.name}')" class="px-8 py-3 btn-volt text-[10px] tracking-tighter">Deploy</button>
+                    </div></div>`;
+            });
+        }
+
+        function renderRankings() {
+            const list = document.getElementById('rank-list');
+            list.innerHTML = `<div class="glass p-6 rounded-3xl border-l-4 border-yellow-500">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex flex-col">
+                        <span class="font-black text-white">Rahul Das</span>
+                        <span class="text-[10px] text-volt uppercase font-bold">Pro | Football Specialist</span>
+                    </div>
+                    <span class="font-black text-[#ccff00]">42 Sessions</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-black/40 p-3 rounded-xl"><p class="text-[8px] text-gray-500 font-bold mb-1 uppercase">Conduct</p><div class="text-xs">⭐⭐⭐⭐⭐</div></div>
+                    <div class="bg-black/40 p-3 rounded-xl"><p class="text-[8px] text-gray-500 font-bold mb-1 uppercase">Tactical Skill</p><div class="text-xs">⭐⭐⭐⭐</div></div>
+                </div></div>`;
+        }
+
+        function openBooking(name) {
+            activeVenue = venues.find(v => v.name === name);
+            document.getElementById('book-count').max = activeVenue.cap;
+            document.getElementById('book-count').value = 1;
+            updatePrice();
+            document.getElementById('booking-modal').classList.remove('hidden');
+        }
+        function updatePrice() { document.getElementById('total-price').innerText = `₹${document.getElementById('book-count').value * activeVenue.price}`; }
+        function processBooking() {
+            if(!document.getElementById('book-date').value) return alert("Select Date.");
+            const pay = document.getElementById('book-pay').value;
+            document.getElementById('booking-modal').classList.add('hidden');
+            if(pay === 'UPI') document.getElementById('upi-modal').classList.remove('hidden');
+            else alert("Booking protocol locked. Pay at Venue.");
+        }
+        function confirmUPI() { document.getElementById('upi-btn').innerText="VERIFYING..."; setTimeout(() => { alert("Verified!"); location.reload(); }, 3000); }
+
+        async function handleLogin() {
+            const res = await fetchJSONP({ action: 'login', loginId: document.getElementById('login-id').value, password: document.getElementById('login-pass').value });
+            if(res.status === 'success') {
+                currentUser = res.user; document.getElementById('auth-overlay').style.display = 'none'; document.getElementById('main-content').classList.remove('hidden');
+                document.getElementById('user-name').innerText = currentUser.name.split(' ')[0]; document.getElementById('avatar').innerText = currentUser.name[0].toUpperCase();
+                document.getElementById('disc-modal').classList.remove('hidden'); initBackgrounds();
+            } else alert(res.msg);
+        }
+
+        function handleRegister() {
+            const data = { action: 'register', name: document.getElementById('reg-name').value, phone: document.getElementById('reg-phone').value, email: document.getElementById('reg-email').value, password: document.getElementById('reg-pass').value, sport: document.getElementById('reg-sport').value, skill: document.getElementById('reg-skill').value, bloodGroup: document.getElementById('reg-blood').value };
+            fetchJSONP(data).then(() => { alert("Profile Created! Login now."); location.reload(); });
+        }
+
+        function fetchJSONP(params) {
+            return new Promise((resolve) => {
+                const callbackName = 'jsonp_' + Date.now();
+                const script = document.createElement('script');
+                window[callbackName] = (data) => { resolve(data); document.body.removeChild(script); delete window[callbackName]; };
+                params.callback = callbackName; script.src = scriptURL + '?' + new URLSearchParams(params).toString();
+                document.body.appendChild(script);
+            });
+        }
+        function toggleAuth(type) { document.getElementById('login-box').classList.toggle('hidden', type !== 'login'); document.getElementById('register-box').classList.toggle('hidden', type !== 'register'); }
+        function showForgot(show) { document.getElementById('login-box').classList.toggle('hidden', show); document.getElementById('forgot-box').classList.toggle('hidden', !show); }
+        function closeDisc() { document.getElementById('disc-modal').classList.add('hidden'); }
+        function logout() { localStorage.clear(); location.reload(); }
+    </script>
+</body>
+</html>
